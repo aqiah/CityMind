@@ -1,0 +1,6 @@
+# CityMind — match Python 3.11+ (also tested on 3.13)
+pygame>=2.5.2
+networkx>=3.2
+numpy>=1.26
+scikit-learn>=1.4
+matplotlib>=3.8
