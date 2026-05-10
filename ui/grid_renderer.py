@@ -48,9 +48,18 @@ def draw_layout_type_icon(surface: pygame.Surface, cx: int, cy: int, ltype: Loca
         pygame.draw.rect(surface, ic, pygame.Rect(cx - 7, cy - arm // 2, 14, arm))
 
     elif ltype == LocationType.SCHOOL:
-        pygame.draw.rect(surface, ic, pygame.Rect(cx - 7, cy - 3, 14, 11))
-        pygame.draw.line(surface, ic, (cx - 5, cy - 3), (cx - 5, cy - 11), 2)
-        pygame.draw.polygon(surface, ic, [(cx - 5, cy - 11), (cx + 3, cy - 9), (cx - 5, cy - 7)])
+        # Backpack / school bag — reads clearly different from residential house
+        pygame.draw.rect(surface, ic, pygame.Rect(cx - 5, cy - 1, 10, 8))
+        flap = [
+            (cx - 6, cy - 1),
+            (cx + 6, cy - 1),
+            (cx + 4, cy - 7),
+            (cx - 4, cy - 7),
+        ]
+        pygame.draw.polygon(surface, ic, flap)
+        pygame.draw.rect(surface, _LAYOUT_ICON_SHADOW, pygame.Rect(cx - 2, cy + 3, 4, 2))
+        pygame.draw.line(surface, ic, (cx - 5, cy - 1), (cx - 8, cy - 8), 2)
+        pygame.draw.line(surface, ic, (cx + 5, cy - 1), (cx + 8, cy - 8), 2)
 
     elif ltype == LocationType.INDUSTRIAL:
         pygame.draw.rect(surface, ic, pygame.Rect(cx - 8, cy + 1, 16, 6))
