@@ -91,12 +91,16 @@ class CityMindApp:
 
     def _do_init(self) -> None:
         """Run simulation setup (CSP, MST, GA, ML) and prepare renderer."""
+        ts = self.control_panel.parse_steps_int()
         self.sim.initialise(
             grid_w=GRID_W, grid_h=GRID_H,
             cell_px=CELL_PX,
             origin_x=GRID_ORIGIN_X,
-            origin_y=GRID_ORIGIN_Y
+            origin_y=GRID_ORIGIN_Y,
+            total_simulation_steps=ts,
         )
+        self.control_panel.sync_steps_buffer_from_sim(self.sim.total_simulation_steps)
+        self.control_panel.total_steps = self.sim.total_simulation_steps
         self._sync_renderer()
         self._init_phase = False
         self._last_tick_time = time.time()
@@ -111,9 +115,12 @@ class CityMindApp:
         self.renderer.ambulance_pos   = self.sim.router.current_node()
 
         self.control_panel.sim_step   = self.sim.step
+        self.control_panel.total_steps = self.sim.total_simulation_steps
         self.control_panel.is_paused  = self.sim.paused
         self.control_panel.phase      = self.sim.phase
         self.control_panel.weather    = self.sim.weather
+        if self.sim.step > 0:
+            self.control_panel.steps_input_focus = False
 
         self.log_panel.update(self.sim.log)
 
@@ -142,6 +149,25 @@ class CityMindApp:
                 self.running = False
 
             elif event.type == pygame.KEYDOWN:
+                if self.control_panel.steps_input_focus:
+                    if self.sim.step > 0:
+                        self.control_panel.steps_warning_msg = (
+                            "Steps locked during run — use RESET to edit."
+                        )
+                        self.control_panel.steps_warning_expire_ms = (
+                            pygame.time.get_ticks() + 4500
+                        )
+                        self.control_panel.steps_input_focus = False
+                    elif self.sim.step == 0:
+                        if event.key == pygame.K_BACKSPACE:
+                            self.control_panel.apply_steps_backspace()
+                            continue
+                        if event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+                            self.control_panel.steps_input_focus = False
+                            continue
+                        if event.unicode and event.unicode.isdigit():
+                            self.control_panel.apply_steps_text_digit(event.unicode)
+                            continue
                 self._handle_key(event.key)
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -153,7 +179,9 @@ class CityMindApp:
                     if self._fullscreen_btn_rect.collidepoint(mx, my):
                         self._toggle_fullscreen()
                         continue
-                    action = self.control_panel.handle_click(mx, my)
+                    action = self.control_panel.handle_click(
+                        mx, my, sim_step=self.sim.step
+                    )
                     if action:
                         self._handle_action(action)
 
@@ -167,8 +195,12 @@ class CityMindApp:
                 self.sim.set_speed(result)
 
     def _handle_key(self, key: int) -> None:
+        if self.control_panel.steps_input_focus and self.sim.step == 0:
+            if key == pygame.K_SPACE:
+                return
         if key == pygame.K_SPACE:
             if self.sim.paused:
+                self._apply_simulation_steps_from_ui()
                 self.sim.play()
             else:
                 self.sim.pause()
@@ -191,8 +223,17 @@ class CityMindApp:
         elif key == pygame.K_F11:
             self._toggle_fullscreen()
 
+    def _apply_simulation_steps_from_ui(self) -> None:
+        """Apply numeric steps field to simulation before first tick (step == 0)."""
+        if self.sim.step == 0:
+            self.sim.configure_total_steps(self.control_panel.parse_steps_int())
+            self.control_panel.sync_steps_buffer_from_sim(
+                self.sim.total_simulation_steps
+            )
+
     def _handle_action(self, action: str) -> None:
         if action == "play":
+            self._apply_simulation_steps_from_ui()
             self.sim.play()
         elif action == "pause":
             self.sim.pause()
@@ -231,7 +272,6 @@ class CityMindApp:
         interval = 1.0 / self.sim.speed
         if now - self._last_tick_time >= interval:
             self.sim.tick()
-            self._sync_renderer()
             self._last_tick_time = now
 
     # ------------------------------------------------------------------ #
@@ -239,13 +279,16 @@ class CityMindApp:
     # ------------------------------------------------------------------ #
 
     def _render(self) -> None:
-        # Statistics refresh every frame so STEP / phase / latest graph stats stay in sync
+        # Keep renderer + control panel aligned with sim every frame (step/phase/weather)
+        self._sync_renderer()
+
+        # Statistics: fresh graph snapshot each frame so floods/risk/crime update after each tick
         self.stats_panel.update(
             self.gm.stats(),
             self.sim.ga.history if self.sim.ga else [],
             self.sim.ml.feature_importance_dict() if self.sim.ml else {},
             sim_step=self.sim.step,
-            total_steps=SIM_TOTAL_STEPS,
+            total_steps=self.sim.total_simulation_steps,
             paused=self.sim.paused,
             phase=self.sim.phase,
         )
@@ -337,7 +380,7 @@ class CityMindApp:
 
         # Status dot
         dot_color = ACCENT_GREEN if not self.sim.paused else ACCENT_ORANGE
-        if self.sim.step >= 20:
+        if self.sim.step >= self.sim.total_simulation_steps > 0:
             dot_color = ACCENT_RED
         pygame.draw.circle(self.screen, dot_color, (SCREEN_W - 122, 26), 6)
 

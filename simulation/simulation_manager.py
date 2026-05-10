@@ -1,7 +1,7 @@
 """
 simulation/simulation_manager.py
 =================================
-Orchestrates the 20-step CityMind simulation.
+Orchestrates the configurable-length CityMind simulation.
 
 Each simulation step
 --------------------
@@ -15,7 +15,7 @@ Each simulation step
 
 Day/night cycle
 ---------------
-Steps 1-10 = day, 11-20 = night.
+First half of total steps = day, remainder = night (first ~half / second ~half).
 Night increases flood probability and risk drift.
 
 Weather
@@ -39,7 +39,9 @@ from algorithms.astar_router import AStarRouter
 from ml.crime_predictor import CrimePredictor
 
 
-TOTAL_STEPS = 20
+MIN_SIMULATION_STEPS = 5
+MAX_SIMULATION_STEPS = 500
+DEFAULT_SIMULATION_STEPS = 20
 
 
 class SimulationManager:
@@ -48,7 +50,7 @@ class SimulationManager:
 
     Attributes
     ----------
-    step            : Current simulation step (1–20).
+    step            : Current simulation step (1 … total_simulation_steps).
     running         : True while simulation is active.
     paused          : True when user pauses.
     speed           : Steps per second (controlled by speed slider).
@@ -85,6 +87,8 @@ class SimulationManager:
         self.coverage_map: Dict[int, float] = {}
         self.crime_map:    Dict[int, float] = {}
 
+        self.total_simulation_steps: int = DEFAULT_SIMULATION_STEPS
+
         # Subscribe to events for logging
         self.bus.subscribe(EventType.EDGE_FLOODED,      self._log_flood)
         self.bus.subscribe(EventType.ASTAR_REPLAN,      self._log_replan)
@@ -96,11 +100,16 @@ class SimulationManager:
     # ------------------------------------------------------------------ #
 
     def initialise(self, grid_w: int = 10, grid_h: int = 10,
-                   cell_px: int = 60, origin_x: int = 20, origin_y: int = 60) -> None:
+                   cell_px: int = 60, origin_x: int = 20, origin_y: int = 60,
+                   total_simulation_steps: int = DEFAULT_SIMULATION_STEPS) -> None:
         """
         Build graph and run all AI modules in sequence.
         This is the setup phase before the live simulation begins.
         """
+        ts = max(MIN_SIMULATION_STEPS,
+                 min(MAX_SIMULATION_STEPS, int(total_simulation_steps)))
+        self.total_simulation_steps = ts
+
         self._log_msg("=== CityMind Initialising ===")
 
         # 1. Build grid graph
@@ -180,7 +189,7 @@ class SimulationManager:
         if self.paused or not self.running:
             return self.running
 
-        if self.step >= TOTAL_STEPS:
+        if self.step >= self.total_simulation_steps:
             self.running = False
             self._log_msg("=== Simulation Complete ===")
             return False
@@ -188,8 +197,9 @@ class SimulationManager:
         self.step += 1
         self._log_msg(f"\n── STEP {self.step} ──")
 
-        # Day/night cycle
-        self.phase   = "day" if self.step <= 10 else "night"
+        # Day/night cycle — split timeline at midpoint of configured length
+        half = max(1, self.total_simulation_steps // 2)
+        self.phase   = "day" if self.step <= half else "night"
         self.weather = random.uniform(0.0, 1.0)
         night_mult   = 1.5 if self.phase == "night" else 1.0
 
@@ -364,6 +374,19 @@ class SimulationManager:
         """Set simulation steps per second (0.25 – 5.0)."""
         self.speed = max(0.25, min(5.0, speed))
         self.bus.publish(Event(EventType.SPEED_CHANGED, data={"speed": self.speed}))
+
+    def configure_total_steps(self, n: int) -> bool:
+        """
+        Set total_simulation_steps only while no step has been executed yet (step == 0).
+        Value is clamped to [MIN_SIMULATION_STEPS, MAX_SIMULATION_STEPS].
+        Returns False if the run has already advanced (edit not allowed).
+        """
+        if self.step > 0:
+            return False
+        self.total_simulation_steps = max(
+            MIN_SIMULATION_STEPS, min(MAX_SIMULATION_STEPS, int(n))
+        )
+        return True
 
     # ------------------------------------------------------------------ #
     #  Logging helpers                                                     #
