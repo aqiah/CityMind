@@ -29,8 +29,10 @@ RIGHT_PANEL_X = GRID_PANEL_W + 10
 RIGHT_PANEL_W = SCREEN_W - RIGHT_PANEL_X - 10
 
 # Control strip: simulation steps row + speed row layout
-CONTROL_PANEL_H = 192
-LOG_PANEL_Y     = GRID_ORIGIN_Y + CONTROL_PANEL_H + 10
+# Top aligns with ControlPanel in panels.py (below ~52px title bar), not GRID_ORIGIN_Y.
+CONTROL_PANEL_Y   = 10
+CONTROL_PANEL_H   = 192
+LOG_PANEL_Y       = CONTROL_PANEL_Y + CONTROL_PANEL_H + 10
 # Slightly shorter log so the statistics panel has room for feature-importance rows
 LOG_PANEL_H     = 250
 STATS_PANEL_Y   = LOG_PANEL_Y + LOG_PANEL_H + 10

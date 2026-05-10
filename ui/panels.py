@@ -169,7 +169,7 @@ class ControlPanel:
 
     def __init__(self):
         rx = RIGHT_PANEL_X
-        ry = 10
+        ry = CONTROL_PANEL_Y
         rw = RIGHT_PANEL_W
         self.rect = pygame.Rect(rx, ry, rw, CONTROL_PANEL_H)
 
