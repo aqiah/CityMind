@@ -91,7 +91,7 @@ class CityMindApp:
 
     def _do_init(self) -> None:
         """Run simulation setup (CSP, MST, GA, ML) and prepare renderer."""
-        ts = self.control_panel.parse_steps_int()
+        ts = self.control_panel.parse_steps_int_for_init()
         self.sim.initialise(
             grid_w=GRID_W, grid_h=GRID_H,
             cell_px=CELL_PX,
@@ -200,7 +200,8 @@ class CityMindApp:
                 return
         if key == pygame.K_SPACE:
             if self.sim.paused:
-                self._apply_simulation_steps_from_ui()
+                if not self._apply_simulation_steps_from_ui():
+                    return
                 self.sim.play()
             else:
                 self.sim.pause()
@@ -223,17 +224,26 @@ class CityMindApp:
         elif key == pygame.K_F11:
             self._toggle_fullscreen()
 
-    def _apply_simulation_steps_from_ui(self) -> None:
-        """Apply numeric steps field to simulation before first tick (step == 0)."""
-        if self.sim.step == 0:
-            self.sim.configure_total_steps(self.control_panel.parse_steps_int())
-            self.control_panel.sync_steps_buffer_from_sim(
-                self.sim.total_simulation_steps
-            )
+    def _apply_simulation_steps_from_ui(self) -> bool:
+        """
+        Apply numeric steps field before first tick. Returns False if validation fails
+        (shows warning on control panel; caller must not start playback).
+        """
+        if self.sim.step != 0:
+            return True
+        ok, val, msg = self.control_panel.validate_steps_input()
+        if not ok:
+            self.control_panel.steps_warning_msg = msg
+            self.control_panel.steps_warning_expire_ms = pygame.time.get_ticks() + 5000
+            return False
+        self.sim.configure_total_steps(val)
+        self.control_panel.sync_steps_buffer_from_sim(self.sim.total_simulation_steps)
+        return True
 
     def _handle_action(self, action: str) -> None:
         if action == "play":
-            self._apply_simulation_steps_from_ui()
+            if not self._apply_simulation_steps_from_ui():
+                return
             self.sim.play()
         elif action == "pause":
             self.sim.pause()

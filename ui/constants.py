@@ -28,9 +28,11 @@ GRID_PANEL_W = GRID_ORIGIN_X + GRID_W * CELL_PX + 20   # ≈ 580
 RIGHT_PANEL_X = GRID_PANEL_W + 10
 RIGHT_PANEL_W = SCREEN_W - RIGHT_PANEL_X - 10
 
-CONTROL_PANEL_H = 160
+# Control strip: simulation steps row + speed row layout
+CONTROL_PANEL_H = 192
 LOG_PANEL_Y     = GRID_ORIGIN_Y + CONTROL_PANEL_H + 10
-LOG_PANEL_H     = 280
+# Slightly shorter log so the statistics panel has room for feature-importance rows
+LOG_PANEL_H     = 250
 STATS_PANEL_Y   = LOG_PANEL_Y + LOG_PANEL_H + 10
 # Right column: stats fill to bottom (City Map text lives only under the grid, left)
 STATS_PANEL_H   = SCREEN_H - STATS_PANEL_Y - 10
@@ -85,8 +87,6 @@ FONT_SMALL    = 11
 FONT_STATS    = 12   # statistics & legend readability
 FONT_MONO     = 12
 
-SIM_TOTAL_STEPS = 20
-
 # ── Overlay names ───────────────────────────────────────────────────── #
 OVERLAYS = ["Layout", "Roads", "Coverage", "Crime", "Routes"]
 
@@ -102,7 +102,7 @@ CITY_MAP_LEGEND_LINES = (
 MAP_LEGEND_LEFT_X = 12
 MAP_LEGEND_LEFT_Y = GRID_ORIGIN_Y + GRID_H * CELL_PX + 10
 MAP_LEGEND_LEFT_W = GRID_PANEL_W - MAP_LEGEND_LEFT_X - 8
-MAP_LEGEND_LEFT_H = 96
+MAP_LEGEND_LEFT_H = 112
 
 # Title bar — window controls (left of FPS cluster)
 TITLE_BTN_GAP = 8
