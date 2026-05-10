@@ -47,6 +47,19 @@ class LocationType(Enum):
         }
         return LABELS.get(self, "?")
 
+    def display_name(self) -> str:
+        """Human-readable name for tooltips and legends."""
+        NAMES = {
+            LocationType.EMPTY:           "Empty",
+            LocationType.RESIDENTIAL:     "Residential",
+            LocationType.HOSPITAL:        "Hospital",
+            LocationType.SCHOOL:          "School",
+            LocationType.INDUSTRIAL:      "Industrial",
+            LocationType.POWER_PLANT:     "Power plant",
+            LocationType.AMBULANCE_DEPOT: "Ambulance depot",
+        }
+        return NAMES.get(self, "?")
+
 
 @dataclass
 class Node:

@@ -24,6 +24,63 @@ def lerp_color(c1, c2, t: float):
             int(c1[2] + (c2[2] - c1[2]) * t))
 
 
+# Light glyphs for Layout overlay (vector icons, consistent across OS/fonts)
+_LAYOUT_ICON_LIGHT = (245, 248, 255)
+_LAYOUT_ICON_SHADOW = (35, 42, 58)
+
+
+def draw_layout_type_icon(surface: pygame.Surface, cx: int, cy: int, ltype: LocationType) -> None:
+    """Draw a compact landmark glyph centered at (cx, cy); fits inside NODE_RADIUS."""
+    ic = _LAYOUT_ICON_LIGHT
+
+    if ltype == LocationType.EMPTY:
+        return
+
+    if ltype == LocationType.RESIDENTIAL:
+        roof = [(cx - 7, cy - 1), (cx, cy - 9), (cx + 7, cy - 1)]
+        pygame.draw.polygon(surface, ic, roof)
+        pygame.draw.rect(surface, ic, pygame.Rect(cx - 6, cy - 1, 12, 8))
+        pygame.draw.rect(surface, _LAYOUT_ICON_SHADOW, pygame.Rect(cx - 2, cy + 2, 4, 4))
+
+    elif ltype == LocationType.HOSPITAL:
+        arm = 3
+        pygame.draw.rect(surface, ic, pygame.Rect(cx - arm // 2, cy - 7, arm, 14))
+        pygame.draw.rect(surface, ic, pygame.Rect(cx - 7, cy - arm // 2, 14, arm))
+
+    elif ltype == LocationType.SCHOOL:
+        pygame.draw.rect(surface, ic, pygame.Rect(cx - 7, cy - 3, 14, 11))
+        pygame.draw.line(surface, ic, (cx - 5, cy - 3), (cx - 5, cy - 11), 2)
+        pygame.draw.polygon(surface, ic, [(cx - 5, cy - 11), (cx + 3, cy - 9), (cx - 5, cy - 7)])
+
+    elif ltype == LocationType.INDUSTRIAL:
+        pygame.draw.rect(surface, ic, pygame.Rect(cx - 8, cy + 1, 16, 6))
+        roof = [
+            (cx - 8, cy + 1),
+            (cx - 5, cy - 4),
+            (cx - 2, cy + 1),
+            (cx + 1, cy - 4),
+            (cx + 4, cy + 1),
+            (cx + 8, cy + 1),
+        ]
+        pygame.draw.polygon(surface, ic, roof)
+        pygame.draw.rect(surface, ic, pygame.Rect(cx + 4, cy - 9, 4, 10))
+
+    elif ltype == LocationType.POWER_PLANT:
+        bolt = [(cx + 3, cy - 8), (cx - 3, cy - 1), (cx, cy - 1), (cx - 4, cy + 8),
+                (cx + 4, cy + 1), (cx + 1, cy + 1)]
+        pygame.draw.polygon(surface, ic, bolt)
+
+    elif ltype == LocationType.AMBULANCE_DEPOT:
+        n = 5
+        ro, ri = 6.5, 2.8
+        pts = []
+        for i in range(n * 2):
+            r = ro if i % 2 == 0 else ri
+            ang = -math.pi / 2 + (i * math.pi / n)
+            pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
+        pygame.draw.polygon(surface, ic, pts)
+
+
 class GridRenderer:
     """
     Draws the city grid onto a Pygame surface.
@@ -173,13 +230,10 @@ class GridRenderer:
             pygame.draw.circle(surface, fill, (px, py), NODE_RADIUS)
             pygame.draw.circle(surface, border, (px, py), NODE_RADIUS, 2)
 
-            # Location type label
+            # Location type icon (Layout overlay)
             if "Layout" in self.active_overlays:
-                label = node.location_type.label()
-                if label != "—":
-                    font = pygame.font.SysFont("monospace", FONT_SMALL, bold=True)
-                    txt  = font.render(label, True, TEXT_PRIMARY)
-                    surface.blit(txt, (px - txt.get_width()//2, py - txt.get_height()//2))
+                if node.location_type != LocationType.EMPTY:
+                    draw_layout_type_icon(surface, px, py, node.location_type)
 
             # Crime overlay dot
             if "Crime" in self.active_overlays and node.crime_level:
@@ -416,7 +470,7 @@ class GridRenderer:
 
         lines = [
             f"Node {nid} [{node.x},{node.y}]",
-            f"Type: {node.location_type.label()}",
+            f"Type: {node.location_type.display_name()}",
         ]
         if nid == self.gm.primary_hospital_id:
             lines.append("Role: Primary Medical Center")
