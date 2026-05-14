@@ -8,7 +8,7 @@ All drawing is done to a Pygame surface passed in at draw time.
 from __future__ import annotations
 import math
 import pygame
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, FrozenSet
 
 from core.graph_manager import GraphManager
 from core.node import Node, LocationType
@@ -101,6 +101,7 @@ class GridRenderer:
     Coverage : Heatmap of ambulance coverage distance.
     Crime    : Heatmap of predicted crime level.
     Routes   : Active A* route highlighted.
+    Police   : ML-driven positions of the 10-officer squad.
     """
 
     def __init__(self):
@@ -110,6 +111,7 @@ class GridRenderer:
         self.crime_map:    Dict[int, float] = {}
         self.route_path:   list            = []
         self.ambulance_pos: Optional[int]  = None
+        self.police_nodes: FrozenSet[int] = frozenset()
         self.tick:         int             = 0    # animation frame counter
         self.hovered_node: Optional[int]   = None
         self.phase:        str             = "day"
@@ -137,6 +139,9 @@ class GridRenderer:
 
         # Primary facility landmarks — above base nodes and route overlay
         self._draw_primary_landmarks(surface)
+
+        if "Police" in self.active_overlays and self.police_nodes:
+            self._draw_police_markers(surface)
 
         # Ambulance tracker always when a position is known (not gated on Routes overlay)
         self._draw_ambulance(surface)
@@ -341,6 +346,31 @@ class GridRenderer:
                 (px + r_core - 2, py - r_core + 2), 4,
             )
 
+    def _draw_police_markers(self, surface: pygame.Surface) -> None:
+        """Gold / navy badges for ML-placed police units (Challenge 5)."""
+        ph = self.gm.primary_hospital_id
+        pd = self.gm.primary_depot_id
+        for nid in self.police_nodes:
+            node = self.gm.get_node(nid)
+            if not node:
+                continue
+            px, py = node.px, node.py
+            # Offset so badges don't fully cover layout glyphs / crime dots
+            ox, oy = px + 9, py - 10
+            if nid == ph or nid == pd:
+                ox, oy = px + 11, py + 8
+
+            r = 6
+            pygame.draw.circle(surface, (15, 35, 85), (ox, oy), r + 1)
+            pygame.draw.circle(surface, ACCENT_GOLD, (ox, oy), r + 1, 2)
+            pygame.draw.circle(surface, (25, 55, 120), (ox, oy), r)
+            try:
+                font_p = pygame.font.SysFont("Georgia", 11, bold=True)
+            except Exception:
+                font_p = pygame.font.SysFont("Segoe UI", 11, bold=True)
+            lbl = font_p.render("P", True, (255, 248, 220))
+            surface.blit(lbl, (ox - lbl.get_width() // 2, oy - lbl.get_height() // 2))
+
     def _draw_primary_depot_node(self, surface: pygame.Surface, nid: int) -> None:
         """Emergency operations HQ: cyan radar ring, rotating sweep, bold D."""
         node = self.gm.get_node(nid)
@@ -490,6 +520,8 @@ class GridRenderer:
             lines.append("Role: Primary Medical Center")
         elif nid == self.gm.primary_depot_id:
             lines.append("Role: Primary EMS Command")
+        if nid in self.police_nodes:
+            lines.append("Police unit (ML deployment)")
         lines.extend([
             f"Pop:  {node.population:.2f}",
             f"Risk: {node.risk_index:.2f}",

@@ -110,6 +110,7 @@ class CityMindApp:
         self.renderer.active_overlays = self.control_panel.active_overlays()
         self.renderer.coverage_map    = self.sim.coverage_map
         self.renderer.crime_map       = self.sim.crime_map
+        self.renderer.police_nodes    = frozenset(self.sim.police_nodes)
         self.renderer.phase           = self.sim.phase
         self.renderer.route_path      = self.sim.router.current_path
         self.renderer.ambulance_pos   = self.sim.router.current_node()
@@ -217,6 +218,8 @@ class CityMindApp:
             self._toggle_overlay("Crime")
         elif key == pygame.K_5:
             self._toggle_overlay("Routes")
+        elif key == pygame.K_6:
+            self._toggle_overlay("Police")
         elif key == pygame.K_PLUS or key == pygame.K_EQUALS:
             self.sim.set_speed(min(4.0, self.sim.speed + 0.25))
         elif key == pygame.K_MINUS:
@@ -293,8 +296,10 @@ class CityMindApp:
         self._sync_renderer()
 
         # Statistics: fresh graph snapshot each frame so floods/risk/crime update after each tick
+        graph_stats = self.gm.stats()
+        graph_stats["police_units"] = len(self.sim.police_nodes)
         self.stats_panel.update(
-            self.gm.stats(),
+            graph_stats,
             self.sim.ga.history if self.sim.ga else [],
             self.sim.ml.feature_importance_dict() if self.sim.ml else {},
             sim_step=self.sim.step,

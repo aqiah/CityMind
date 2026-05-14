@@ -74,7 +74,7 @@ def draw_bar(surface: pygame.Surface, x: int, y: int, w: int, h: int,
 # ─────────────────────────────────────────────────────── #
 
 class OverlayButton:
-    """A toggle button for one of the 5 overlay modes."""
+    """A toggle button for one overlay mode (Layout … Police)."""
 
     def __init__(self, x: int, y: int, w: int, h: int, label: str):
         self.rect  = pygame.Rect(x, y, w, h)
@@ -490,6 +490,7 @@ class StatsPanel:
             ("Bridges",     self.stats.get("bridges",   0),  ACCENT_ORANGE),
             ("Avg Risk",    f"{self.stats.get('avg_risk', 0):.3f}", ACCENT_RED),
             ("High Crime",  self.stats.get("high_crime", 0), ACCENT_PINK),
+            ("Police (ML)", self.stats.get("police_units", 0), ACCENT_GOLD),
         ]
         ph = self.stats.get("primary_hospital")
         pd = self.stats.get("primary_depot")

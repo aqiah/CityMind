@@ -9,7 +9,7 @@ CityMind/
   main.py              # Entry point (adds project root to sys.path)
   requirements.txt
   core/                # Node, Edge, GraphManager, EventBus
-  algorithms/          # CSP, road network (MST/Tarjan), GA, A*
+  algorithms/          # CSP, roads (MST/Tarjan), GA, A*, police placement
   ml/                  # Crime prediction (K-Means + RandomForest)
   simulation/          # 20-step orchestration
   ui/                  # Pygame dashboard (constants, grid renderer, panels, app)
@@ -27,7 +27,7 @@ python main.py
 
 - **Space** — pause / play  
 - **R** — reset  
-- **1–5** — overlay toggles (Layout, Roads, Coverage, Crime, Routes)  
+- **1–6** — overlay toggles (Layout, Roads, Coverage, Crime, Routes, Police)  
 - **+ / -** — simulation speed  
 
 ## Notes

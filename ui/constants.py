@@ -90,13 +90,14 @@ FONT_STATS    = 12   # statistics & legend readability
 FONT_MONO     = 12
 
 # ── Overlay names ───────────────────────────────────────────────────── #
-OVERLAYS = ["Layout", "Roads", "Coverage", "Crime", "Routes"]
+OVERLAYS = ["Layout", "Roads", "Coverage", "Crime", "Routes", "Police"]
 
 # ── City map legend (bottom-left under grid only) #
 CITY_MAP_LEGEND_LINES = (
     "10x10 city grid: each node is an intersection, edges are roads.",
-    "Overlays colour by land use, roads/bridges, GA coverage, crime, or the A* route.",
+    "Overlays: land use, roads/bridges, GA coverage, crime heatmap, A* route, or police (P).",
     "Cross + rings = primary hospital; D + radar = primary depot; A = ambulance.",
+    "Police overlay: 10 officers placed from ML crime scores (spread across hotspots).",
     "Move the mouse over a node to see its data panel.",
 )
 

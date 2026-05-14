@@ -36,6 +36,7 @@ from algorithms.csp_solver import CSPSolver
 from algorithms.road_network import RoadNetworkBuilder
 from algorithms.genetic_algorithm import GeneticAlgorithmSolver
 from algorithms.astar_router import AStarRouter
+from algorithms.police_deployment import allocate_police_positions
 from ml.crime_predictor import CrimePredictor
 
 
@@ -86,6 +87,8 @@ class SimulationManager:
         # Coverage / heatmap caches
         self.coverage_map: Dict[int, float] = {}
         self.crime_map:    Dict[int, float] = {}
+        # ML-driven police deployment (Challenge 5)
+        self.police_nodes: List[int] = []
 
         self.total_simulation_steps: int = DEFAULT_SIMULATION_STEPS
 
@@ -150,6 +153,8 @@ class SimulationManager:
         self.crime_map = self.ml.crime_heatmap()
         self._log_msg("[ML] Done. Predictions applied.")
 
+        self._deploy_police()
+
         # 6. Set up initial A* route: depot → nearest hospital
         self._setup_initial_route()
 
@@ -157,6 +162,17 @@ class SimulationManager:
         self.running = True
         self.paused  = True   # user presses play to start
         self._log_msg("=== Ready. Press PLAY to begin simulation ===")
+
+    def _deploy_police(self) -> None:
+        """Place 10 officers from current ``crime_map`` (refreshed with ML)."""
+        self.police_nodes = allocate_police_positions(self.crime_map)
+        if self.police_nodes:
+            preview = ", ".join(str(n) for n in self.police_nodes[:5])
+            more = "..." if len(self.police_nodes) > 5 else ""
+            self._log_msg(
+                f"[Police] Deployed {len(self.police_nodes)} units at nodes "
+                f"{preview}{more}"
+            )
 
     def _setup_initial_route(self) -> None:
         """Find a good source/target pair for A* demonstration."""
@@ -228,6 +244,7 @@ class SimulationManager:
             self._log_msg("  [ML] Refreshing crime predictions...")
             self.ml.run_pipeline()
             self.crime_map = self.ml.crime_heatmap()
+            self._deploy_police()
 
         # Publish step event
         self.bus.publish(Event(EventType.SIM_STEP,
