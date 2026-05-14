@@ -171,6 +171,7 @@ class GridRenderer:
 
     def _draw_edges(self, surface: pygame.Surface) -> None:
         """Draw all edges with state-dependent colouring."""
+        roads_on = "Roads" in self.active_overlays
         for key, edge in self.gm.edges.items():
             u_node = self.gm.get_node(edge.u)
             v_node = self.gm.get_node(edge.v)
@@ -183,6 +184,10 @@ class GridRenderer:
             # MST edges are thicker; non-MST are invisible (infinite weight)
             if edge.effective_weight == float('inf') and not edge.blocked:
                 continue   # not part of active road network
+
+            # Roads overlay: show MST / bridges / augmentation; always show floods
+            if not roads_on and not edge.blocked:
+                continue
 
             if edge.augmented:
                 width = 3
